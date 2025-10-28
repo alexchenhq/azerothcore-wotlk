@@ -591,7 +591,7 @@ public:
             // pointer check not needed
             DoCast(rageclaw, SPELL_FREE_RAGECLAW, true);
             _rageclawGUID.Clear();
-            me->DespawnOrUnsummon(1);
+            me->DespawnOrUnsummon(1ms);
         }
 
         void SpellHit(Unit* caster, SpellInfo const* spell) override
@@ -660,7 +660,7 @@ public:
                 DoCast(me, SPELL_UNSHACKLED, true);
                 Talk(SAY_RAGECLAW);
                 me->GetMotionMaster()->MoveRandom(10);
-                me->DespawnOrUnsummon(10000);
+                me->DespawnOrUnsummon(10s);
             }
         }
     };
@@ -755,7 +755,7 @@ public:
                     case EVENT_RECRUIT_2:
                         me->SetWalk(true);
                         me->GetMotionMaster()->MovePoint(0, me->GetPositionX() + (cos(_heading) * 10), me->GetPositionY() + (std::sin(_heading) * 10), me->GetPositionZ());
-                        me->DespawnOrUnsummon(5000);
+                        me->DespawnOrUnsummon(5s);
                         break;
                     default:
                         break;
@@ -819,54 +819,6 @@ public:
     }
 };
 
-enum StormCloud
-{
-    STORM_COULD         = 29939,
-    HEALING_WINDS       = 55549,
-    STORM_VISUAL        = 55708,
-    GYMERS_GRAB         = 55516,
-    RIDE_VEHICLE        = 43671
-};
-
-class npc_storm_cloud : public CreatureScript
-{
-public:
-    npc_storm_cloud() : CreatureScript("npc_storm_cloud") { }
-
-    struct npc_storm_cloudAI : public ScriptedAI
-    {
-        npc_storm_cloudAI(Creature* creature) : ScriptedAI(creature) { }
-
-        void Reset() override
-        {
-            me->CastSpell(me, STORM_VISUAL, true);
-        }
-
-        void JustRespawned() override
-        {
-            Reset();
-        }
-
-        void SpellHit(Unit* caster, SpellInfo const* spell) override
-        {
-            if (spell->Id != GYMERS_GRAB)
-                return;
-
-            if (Vehicle* veh = caster->GetVehicleKit())
-                if (veh->GetAvailableSeatCount() != 0)
-                {
-                    me->CastSpell(caster, RIDE_VEHICLE, true);
-                    me->CastSpell(caster, HEALING_WINDS, true);
-                }
-        }
-    };
-
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        return new npc_storm_cloudAI(creature);
-    }
-};
-
 enum ScourgeDisguiseInstability
 {
     SCOURGE_DISGUISE_FAILING_MESSAGE_1       = 28552, // Scourge Disguise Failing! Find a safe place!
@@ -922,7 +874,6 @@ void AddSC_zuldrak()
     new npc_released_offspring_harkoa();
     new npc_crusade_recruit();
     new go_scourge_enclosure();
-    new npc_storm_cloud();
 
     RegisterSpellScript(spell_scourge_disguise_instability);
 }

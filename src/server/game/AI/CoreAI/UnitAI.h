@@ -165,9 +165,10 @@ struct PowerUsersSelector : public Acore::unary_function<Unit*, bool>
     }
 };
 
-struct FarthestTargetSelector : public Acore::unary_function<Unit*, bool>
+// Simple selector based on range and Los
+struct RangeSelector : public Acore::unary_function<Unit*, bool>
 {
-    FarthestTargetSelector(Unit const* unit, float maxDist, bool playerOnly, bool inLos, float minDist = 0.f) : _me(unit), _minDist(minDist), _maxDist(maxDist), _playerOnly(playerOnly), _inLos(inLos) {}
+    RangeSelector(Unit const* unit, float maxDist, bool playerOnly, bool inLos, float minDist = 0.f) : _me(unit), _minDist(minDist), _maxDist(maxDist), _playerOnly(playerOnly), _inLos(inLos) {}
 
     bool operator()(Unit const* target) const
     {
@@ -216,7 +217,7 @@ public:
     virtual void DoAction(int32 /*param*/) {}
     virtual uint32 GetData(uint32 /*id = 0*/) const { return 0; }
     virtual void SetData(uint32 /*id*/, uint32 /*value*/) {}
-    virtual void SetGUID(ObjectGuid /*guid*/, int32 /*id*/ = 0) {}
+    virtual void SetGUID(ObjectGuid const& /*guid*/, int32 /*id*/ = 0) {}
     virtual ObjectGuid GetGUID(int32 /*id*/ = 0) const { return ObjectGuid::Empty; }
 
     // Select the best target (in <targetType> order) from the threat list that fulfill the following:
