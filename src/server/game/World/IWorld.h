@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -81,9 +81,9 @@ public:
     virtual void LoadConfigSettings(bool reload = false) = 0;
     [[nodiscard]] virtual bool IsShuttingDown() const = 0;
     [[nodiscard]] virtual uint32 GetShutDownTimeLeft() const = 0;
-    virtual void ShutdownServ(uint32 time, uint32 options, uint8 exitcode, const std::string& reason = std::string()) = 0;
+    virtual void ShutdownServ(uint32 time, uint32 options, uint8 exitcode, std::string const& reason = std::string()) = 0;
     virtual void ShutdownCancel() = 0;
-    virtual void ShutdownMsg(bool show = false, Player* player = nullptr, const std::string& reason = std::string()) = 0;
+    virtual void ShutdownMsg(bool show = false, Player* player = nullptr, std::string const& reason = std::string()) = 0;
     virtual void Update(uint32 diff) = 0;
     virtual void setRate(ServerConfigs index, float value) = 0;
     [[nodiscard]] virtual float getRate(ServerConfigs index) const = 0;
@@ -115,6 +115,7 @@ public:
     [[nodiscard]] virtual std::string const& GetRealmName() const = 0;
     virtual void SetRealmName(std::string name) = 0;
     virtual SQLQueryHolderCallback& AddQueryHolderCallback(SQLQueryHolderCallback&& callback) = 0;
+    virtual void ReloadRBAC() = 0;
 };
 
 #endif //AZEROTHCORE_IWORLD_H

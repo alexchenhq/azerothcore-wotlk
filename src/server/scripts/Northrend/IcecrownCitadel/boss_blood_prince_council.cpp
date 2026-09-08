@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -101,6 +101,8 @@ enum Spells
     SPELL_KINETIC_BOMB                  = 72080,
     SPELL_SHOCK_VORTEX                  = 72037,
     SPELL_EMPOWERED_SHOCK_VORTEX        = 72039,
+    SPELL_REMOVE_EMPOWERED_BLOOD        = 72131,
+    SPELL_CLEAR_ALL_STATUS_AILMENTS     = 70939,
 
     // Kinetic Bomb
     SPELL_UNSTABLE                      = 72059,
@@ -233,6 +235,7 @@ public:
             _isEmpowered = false;
             _evading = false;
             me->SetHealth(me->GetMaxHealth());
+            me->CastSpell(me, SPELL_REMOVE_EMPOWERED_BLOOD, true);
             me->SetReactState(REACT_AGGRESSIVE);
         }
 
@@ -261,6 +264,7 @@ public:
                 me->SetLootRecipient(who);
             me->LowerPlayerDamageReq(me->GetMaxHealth());
             me->SetReactState(REACT_AGGRESSIVE);
+            DoCastSelf(SPELL_CLEAR_ALL_STATUS_AILMENTS, true);
             instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
 
             if (Creature* taldaram = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_PRINCE_TALDARAM_GUID)))
@@ -1543,6 +1547,21 @@ class spell_taldaram_ball_of_inferno_flame : public SpellScript
     }
 };
 
+class spell_taldaram_ball_of_inferno_flame_aura : public AuraScript
+{
+    PrepareAuraScript(spell_taldaram_ball_of_inferno_flame_aura);
+
+    void HandleStackDrop(ProcEventInfo& /*eventInfo*/)
+    {
+        ModStackAmount(-1);
+    }
+
+    void Register() override
+    {
+        OnProc += AuraProcFn(spell_taldaram_ball_of_inferno_flame_aura::HandleStackDrop);
+    }
+};
+
 class spell_valanar_kinetic_bomb : public SpellScript
 {
     PrepareSpellScript(spell_valanar_kinetic_bomb);
@@ -1704,7 +1723,7 @@ void AddSC_boss_blood_prince_council()
     RegisterSpellScript(spell_blood_council_shadow_prison_damage);
     RegisterSpellScript(spell_taldaram_glittering_sparks);
     RegisterSpellScript(spell_taldaram_summon_flame_ball);
-    RegisterSpellScript(spell_taldaram_ball_of_inferno_flame);
+    RegisterSpellAndAuraScriptPair(spell_taldaram_ball_of_inferno_flame, spell_taldaram_ball_of_inferno_flame_aura);
     RegisterSpellAndAuraScriptPair(spell_valanar_kinetic_bomb, spell_valanar_kinetic_bomb_aura);
     RegisterSpellScript(spell_valanar_kinetic_bomb_absorb_aura);
     RegisterSpellScript(spell_valanar_kinetic_bomb_knockback);

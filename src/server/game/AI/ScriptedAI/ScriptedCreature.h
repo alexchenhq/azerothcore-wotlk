@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -157,6 +157,7 @@ public:
     uint32 GetEntryCount(uint32 entry) const;
     void Respawn();
     Creature* GetCreatureWithEntry(uint32 entry) const;
+    Creature* GetRandomCreatureWithEntry(uint32 entry) const;
 
 private:
     Creature* me;
@@ -243,7 +244,7 @@ struct ScriptedAI : public CreatureAI
      * Hodir is in room until his Y position is below the Door position:
      * IsInRoom(doorPosition, AXIS_Y, false);
      */
-    bool IsInRoom(const Position* pos, Axis axis, bool above)
+    bool IsInRoom(Position const* pos, Axis axis, bool above)
     {
         if (!pos)
         {
@@ -304,6 +305,9 @@ struct ScriptedAI : public CreatureAI
 
     //Stop attack of current victim
     void DoStopAttack();
+
+    //Reward kill credit to all players from the oposing faction in the area (faction leaders)
+    void DoRewardPlayersInArea();
 
     //Cast spell by spell info
     void DoCastSpell(Unit* target, SpellInfo const* spellInfo, bool triggered = false);
@@ -385,7 +389,7 @@ struct ScriptedAI : public CreatureAI
     bool Is25ManRaid() const { return _difficulty & RAID_DIFFICULTY_MASK_25MAN; }
 
     template<class T> inline
-    const T& DUNGEON_MODE(const T& normal5, const T& heroic10) const
+    T const& DUNGEON_MODE(T const& normal5, T const& heroic10) const
     {
         switch (_difficulty)
         {
@@ -401,7 +405,7 @@ struct ScriptedAI : public CreatureAI
     }
 
     template<class T> inline
-    const T& RAID_MODE(const T& normal10, const T& normal25) const
+    T const& RAID_MODE(T const& normal10, T const& normal25) const
     {
         switch (_difficulty)
         {
@@ -417,7 +421,7 @@ struct ScriptedAI : public CreatureAI
     }
 
     template<class T> inline
-    const T& RAID_MODE(const T& normal10, const T& normal25, const T& heroic10, const T& heroic25) const
+    T const& RAID_MODE(T const& normal10, T const& normal25, T const& heroic10, T const& heroic25) const
     {
         switch (_difficulty)
         {
@@ -489,7 +493,9 @@ public:
 
     bool CanRespawn() override;
 
-    void OnSpellCastFinished(SpellInfo const* spell, SpellFinishReason reason) override;
+    void OnSpellCast(SpellInfo const* spell) override;
+    void OnChannelFinished(SpellInfo const* spell) override;
+    void OnSpellFailed(SpellInfo const* spell) override;
     void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType damagetype, SpellSchoolMask damageSchoolMask) override;
     void JustSummoned(Creature* summon) override;
     void SummonedCreatureDespawn(Creature* summon) override;
@@ -533,6 +539,7 @@ protected:
     SummonList summons;
 
 private:
+    void _CheckHealthAfterCast();
     uint32 const _bossId;
     std::list<HealthCheckEventData> _healthCheckEvents;
     HealthCheckEventData _nextHealthCheck;

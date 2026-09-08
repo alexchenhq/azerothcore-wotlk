@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -238,7 +238,8 @@ struct npc_necropolis_health : public ScriptedAI
         if (spellInfo->Id == SPELL_DESPAWNER_OTHER && target->GetEntry() == NPC_NECROPOLIS)
         {
             DespawnNecropolis();
-            dynamic_cast<Creature*>(target)->DespawnOrUnsummon();
+            if (Creature* creature = target->ToCreature())
+                creature->DespawnOrUnsummon();
             me->DespawnOrUnsummon();
         }
     }
@@ -377,7 +378,7 @@ struct npc_necrotic_shard : public ScriptedAI
                 if (shard != me)
                     shard->DespawnOnEvade();
 
-            scheduler.Schedule(10s, [this](const TaskContext& /*context*/) // Check if Doodads are spawned 5 seconds after spawn. If not: spawn them
+            scheduler.Schedule(10s, [this](TaskContext const& /*context*/) // Check if Doodads are spawned 5 seconds after spawn. If not: spawn them
             {
                 std::list<GameObject*> objectList;
                 me->GetGameObjectListWithEntryInGrid(
@@ -841,7 +842,7 @@ struct npc_pallid_horror : public ScriptedAI
 
     void ScheduleTasks()
     {
-        scheduler.Schedule(0s, [this](const TaskContext& /*context*/)
+        scheduler.Schedule(0s, [this](TaskContext const& /*context*/)
         {
             SummonFlameshockers();
         }).Schedule(1s, [this](TaskContext context)

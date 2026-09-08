@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -83,7 +83,7 @@ void VisibleNotifier::SendToSelf()
 
     WorldPacket packet;
     i_data.BuildPacket(packet);
-    i_player.GetSession()->SendPacket(&packet);
+    i_player.SendDirectMessage(&packet);
 
     for (std::vector<Unit*>::const_iterator it = i_visibleNow.begin(); it != i_visibleNow.end(); ++it)
         i_player.GetInitialVisiblePackets(*it);
@@ -186,13 +186,26 @@ void AIRelocationNotifier::Visit(CreatureMapType& m)
     }
 }
 
+void AIRelocationNotifier::Visit(PlayerMapType& m)
+{
+    if (!includePlayers)
+        return;
+
+    Creature* creature = i_unit.ToCreature();
+    if (!creature || creature->IsMoveInLineOfSightStrictlyDisabled())
+        return;
+
+    for (PlayerMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
+        CreatureUnitRelocationWorker(creature, iter->GetSource());
+}
+
 // Uses visibility map
 void MessageDistDeliverer::Visit(VisiblePlayersMap const& m)
 {
     for (auto const& kvPair : m)
     {
         Player const* target = kvPair.second;
-        if (i_distSq != 0.0f && target->m_seer->GetExactDist2dSq(i_source) > i_distSq)
+        if (i_distSq != 0.0f && target->GetSightPosition().GetExactDist2dSq(i_source) > i_distSq)
             continue;
 
         // @todo: Might not need this check anymore

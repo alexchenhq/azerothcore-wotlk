@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -84,21 +84,6 @@ bool ScriptMgr::IfNormalReaction(Unit const* unit, Unit const* target, Reputatio
     CALL_ENABLED_BOOLEAN_HOOKS(UnitScript, UNITHOOK_IF_NORMAL_REACTION, !script->IfNormalReaction(unit, target, repRank));
 }
 
-bool ScriptMgr::IsNeedModSpellDamagePercent(Unit const* unit, AuraEffect* auraEff, float& doneTotalMod, SpellInfo const* spellProto)
-{
-    CALL_ENABLED_BOOLEAN_HOOKS(UnitScript, UNITHOOK_IS_NEEDMOD_SPELL_DAMAGE_PERCENT, !script->IsNeedModSpellDamagePercent(unit, auraEff, doneTotalMod, spellProto));
-}
-
-bool ScriptMgr::IsNeedModMeleeDamagePercent(Unit const* unit, AuraEffect* auraEff, float& doneTotalMod, SpellInfo const* spellProto)
-{
-    CALL_ENABLED_BOOLEAN_HOOKS(UnitScript, UNITHOOK_IS_NEEDMOD_MELEE_DAMAGE_PERCENT, !script->IsNeedModMeleeDamagePercent(unit, auraEff, doneTotalMod, spellProto));
-}
-
-bool ScriptMgr::IsNeedModHealPercent(Unit const* unit, AuraEffect* auraEff, float& doneTotalMod, SpellInfo const* spellProto)
-{
-    CALL_ENABLED_BOOLEAN_HOOKS(UnitScript, UNITHOOK_IS_NEEDMOD_HEAL_PERCENT, !script->IsNeedModHealPercent(unit, auraEff, doneTotalMod, spellProto));
-}
-
 bool ScriptMgr::CanSetPhaseMask(Unit const* unit, uint32 newPhaseMask, bool update)
 {
     CALL_ENABLED_BOOLEAN_HOOKS(UnitScript, UNITHOOK_CAN_SET_PHASE_MASK, !script->CanSetPhaseMask(unit, newPhaseMask, update));
@@ -139,6 +124,11 @@ void ScriptMgr::OnUnitEnterCombat(Unit* unit, Unit* victim)
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_UNIT_ENTER_COMBAT, script->OnUnitEnterCombat(unit, victim));
 }
 
+void ScriptMgr::OnUnitExitCombat(Unit* unit)
+{
+    CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_UNIT_EXIT_COMBAT, script->OnUnitExitCombat(unit));
+}
+
 void ScriptMgr::OnUnitDeath(Unit* unit, Unit* killer)
 {
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_UNIT_DEATH, script->OnUnitDeath(unit, killer));
@@ -149,7 +139,7 @@ void ScriptMgr::OnUnitSetShapeshiftForm(Unit* unit, uint8 form)
     CALL_ENABLED_HOOKS(UnitScript, UNITHOOK_ON_UNIT_SET_SHAPESHIFT_FORM, script->OnUnitSetShapeshiftForm(unit, form));
 }
 
-UnitScript::UnitScript(const char* name, bool addToScripts, std::vector<uint16> enabledHooks)
+UnitScript::UnitScript(char const* name, bool addToScripts, std::vector<uint16> enabledHooks)
     : ScriptObject(name, UNITHOOK_END)
 {
     if (addToScripts)

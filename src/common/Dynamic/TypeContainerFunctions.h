@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -156,31 +156,31 @@ namespace Acore
     /* ContainerMapList Helpers */
     // count functions
     template<class SPECIFIC_TYPE>
-    std::size_t Count(const ContainerMapList<SPECIFIC_TYPE>& elements, SPECIFIC_TYPE* /*fake*/)
+    std::size_t Count(ContainerMapList<SPECIFIC_TYPE> const& elements, SPECIFIC_TYPE* /*fake*/)
     {
         return elements._element.getSize();
     }
 
     template<class SPECIFIC_TYPE>
-    std::size_t Count(const ContainerMapList<TypeNull>& /*elements*/, SPECIFIC_TYPE* /*fake*/)
+    std::size_t Count(ContainerMapList<TypeNull> const& /*elements*/, SPECIFIC_TYPE* /*fake*/)
     {
         return 0;
     }
 
     template<class SPECIFIC_TYPE, class T>
-    std::size_t Count(const ContainerMapList<T>& /*elements*/, SPECIFIC_TYPE* /*fake*/)
+    std::size_t Count(ContainerMapList<T> const& /*elements*/, SPECIFIC_TYPE* /*fake*/)
     {
         return 0;
     }
 
     template<class SPECIFIC_TYPE, class T>
-    std::size_t Count(const ContainerMapList<TypeList<SPECIFIC_TYPE, T>>& elements, SPECIFIC_TYPE* fake)
+    std::size_t Count(ContainerMapList<TypeList<SPECIFIC_TYPE, T>> const& elements, SPECIFIC_TYPE* fake)
     {
         return Count(elements._elements, fake);
     }
 
     template<class SPECIFIC_TYPE, class H, class T>
-    std::size_t Count(const ContainerMapList<TypeList<H, T>>& elements, SPECIFIC_TYPE* fake)
+    std::size_t Count(ContainerMapList<TypeList<H, T>> const& elements, SPECIFIC_TYPE* fake)
     {
         return Count(elements._TailElements, fake);
     }
@@ -243,31 +243,31 @@ namespace Acore
     /* ContainerVector Helpers */
     // count functions
     template<class SPECIFIC_TYPE>
-    std::size_t Count(const ContainerVector<SPECIFIC_TYPE>& elements, SPECIFIC_TYPE* /*fake*/)
+    std::size_t Count(ContainerVector<SPECIFIC_TYPE> const& elements, SPECIFIC_TYPE* /*fake*/)
     {
         return elements._element.getSize();
     }
 
     template<class SPECIFIC_TYPE>
-    std::size_t Count(const ContainerVector<TypeNull>& /*elements*/, SPECIFIC_TYPE* /*fake*/)
+    std::size_t Count(ContainerVector<TypeNull> const& /*elements*/, SPECIFIC_TYPE* /*fake*/)
     {
         return 0;
     }
 
     template<class SPECIFIC_TYPE, class T>
-    std::size_t Count(const ContainerVector<T>& /*elements*/, SPECIFIC_TYPE* /*fake*/)
+    std::size_t Count(ContainerVector<T> const& /*elements*/, SPECIFIC_TYPE* /*fake*/)
     {
         return 0;
     }
 
     template<class SPECIFIC_TYPE, class T>
-    std::size_t Count(const ContainerVector<TypeList<SPECIFIC_TYPE, T>>& elements, SPECIFIC_TYPE* fake)
+    std::size_t Count(ContainerVector<TypeList<SPECIFIC_TYPE, T>> const& elements, SPECIFIC_TYPE* fake)
     {
         return Count(elements._elements, fake);
     }
 
     template<class SPECIFIC_TYPE, class H, class T>
-    std::size_t Count(const ContainerVector<TypeList<H, T>>& elements, SPECIFIC_TYPE* fake)
+    std::size_t Count(ContainerVector<TypeList<H, T>> const& elements, SPECIFIC_TYPE* fake)
     {
         return Count(elements._TailElements, fake);
     }

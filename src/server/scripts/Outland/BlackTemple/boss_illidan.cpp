@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -196,7 +196,7 @@ public:
 
 struct boss_illidan_stormrage : public BossAI
 {
-    boss_illidan_stormrage(Creature* creature) : BossAI(creature, DATA_ILLIDAN_STORMRAGE), _canTalk(true), _dying(false), _inCutscene(false), beamPosId(0) { }
+    boss_illidan_stormrage(Creature* creature) : BossAI(creature, DATA_ILLIDAN_STORMRAGE), _dying(false), _inCutscene(false), beamPosId(0) { }
 
     void Reset() override
     {
@@ -204,7 +204,6 @@ struct boss_illidan_stormrage : public BossAI
         me->m_Events.CancelEventGroup(GROUP_BERSERK);
         me->m_Events.CancelEventGroup(GROUP_PHASE_FLYING);
         me->m_Events.CancelEventGroup(GROUP_DEMON_FORM);
-        _canTalk = true;
         _dying = false;
         _inCutscene = false;
         beamPosId = urand(0, MAX_EYE_BEAM_POS - 1);
@@ -652,15 +651,7 @@ struct boss_illidan_stormrage : public BossAI
 
     void KilledUnit(Unit* /*victim*/) override
     {
-        if (_canTalk)
-        {
-            Talk(SAY_ILLIDAN_KILL);
-            _canTalk = false;
-
-            me->m_Events.AddEventAtOffset([&] {
-                _canTalk = true;
-            }, 6s); // 3590ms
-        }
+        Talk(SAY_ILLIDAN_KILL);
     }
 
     void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType damagetype, SpellSchoolMask damageSchoolMask) override
@@ -689,7 +680,6 @@ struct boss_illidan_stormrage : public BossAI
     }
 
 private:
-    bool _canTalk;
     bool _dying;
     bool _inCutscene;
     uint8 beamPosId;
@@ -794,7 +784,7 @@ struct npc_akama_illidan : public ScriptedAI
 
         if (instance->GetBossState(DATA_AKAMA_ILLIDAN) != DONE)
         {
-            me->GetMotionMaster()->MovePath(PATH_AKAMA_ILLIDARI_COUNCIL_2, false);
+            me->GetMotionMaster()->MoveWaypoint(PATH_AKAMA_ILLIDARI_COUNCIL_2, false);
         }
         else
         {
@@ -811,7 +801,7 @@ struct npc_akama_illidan : public ScriptedAI
             {
                 me->NearTeleportTo(AkamaIllidariCouncilTeleport);
                 me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                me->GetMotionMaster()->MovePath(PATH_AKAMA_ILLIDARI_COUNCIL_1, false);
+                me->GetMotionMaster()->MoveWaypoint(PATH_AKAMA_ILLIDARI_COUNCIL_1, false);
             }
             break;
             case ACTION_AKAMA_MINIONS:
@@ -904,7 +894,7 @@ struct npc_akama_illidan : public ScriptedAI
         else if (type == WAYPOINT_MOTION_TYPE)
         {
             if (me->GetCurrentWaypointID() == PATH_AKAMA_MINIONS)
-                if (id == 2)
+                if (id == 3)
                     DoCastSelf(SPELL_AKAMA_TELEPORT);
         }
     }
@@ -974,7 +964,7 @@ struct npc_akama_illidan : public ScriptedAI
                     Talk(SAY_AKAMA_SALUTE);
                 }, 56955ms); // 6275ms
                 me->m_Events.AddEventAtOffset([&] {
-                    me->GetMotionMaster()->MovePath(PATH_AKAMA_ILLIDARI_COUNCIL_3, false);
+                    me->GetMotionMaster()->MoveWaypoint(PATH_AKAMA_ILLIDARI_COUNCIL_3, false);
                 }, 64030ms); // 7075ms
             }
             break;
@@ -1000,7 +990,8 @@ struct npc_akama_illidan : public ScriptedAI
     void JustReachedHome() override
     {
         // Minions Event
-        if (instance->GetBossState(DATA_ILLIDAN_STORMRAGE) == IN_PROGRESS && !instance->GetCreature(DATA_ILLIDAN_STORMRAGE)->HasAura(SPELL_DEATH))
+        Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE);
+        if (illidan && instance->GetBossState(DATA_ILLIDAN_STORMRAGE) == IN_PROGRESS && !illidan->HasAura(SPELL_DEATH))
         {
             me->SetReactState(REACT_PASSIVE);
             me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
@@ -1013,7 +1004,7 @@ struct npc_akama_illidan : public ScriptedAI
                 me->HandleEmoteCommand(EMOTE_ONESHOT_EXCLAMATION);
             }, 9530ms); // 2830ms
             me->m_Events.AddEventAtOffset([&] {
-                me->GetMotionMaster()->MovePath(PATH_AKAMA_MINIONS, false);
+                me->GetMotionMaster()->MoveWaypoint(PATH_AKAMA_MINIONS, false);
             }, 14400ms); // 4870ms
         }
     }
@@ -1100,16 +1091,29 @@ struct npc_maiev_illidan : public ScriptedAI
         instance = creature->GetInstanceScript();
     }
 
+    bool _outroActive{ false };
+
     void Reset() override
     {
+        if (_outroActive)
+            return;
         scheduler.CancelAll();
-        me->m_Events.KillAllEvents(true);
+        me->m_Events.KillAllEvents(false);
+    }
+
+    void JustExitedCombat() override
+    {
+        EngagementOver();
+        if (_outroActive)
+            return;
+        EnterEvadeMode(EVADE_REASON_NO_HOSTILES);
     }
 
     void DoAction(int32 param) override
     {
         if (param == ACTION_MAIEV_ENDING)
         {
+            _outroActive = true;
             scheduler.CancelAll();
             me->SetReactState(REACT_PASSIVE);
             DoStopAttack();

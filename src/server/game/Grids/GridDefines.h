@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -91,12 +91,12 @@ struct CoordPair
         , y_coord(y)
     {}
 
-    CoordPair(const CoordPair<LIMIT>& obj)
+    CoordPair(CoordPair<LIMIT> const& obj)
         : x_coord(obj.x_coord)
         , y_coord(obj.y_coord)
     {}
 
-    CoordPair<LIMIT>& operator=(const CoordPair<LIMIT>& obj)
+    CoordPair<LIMIT>& operator=(CoordPair<LIMIT> const& obj)
     {
         x_coord = obj.x_coord;
         y_coord = obj.y_coord;
@@ -157,13 +157,13 @@ struct CoordPair
 };
 
 template<uint32 LIMIT>
-bool operator==(const CoordPair<LIMIT>& p1, const CoordPair<LIMIT>& p2)
+bool operator==(CoordPair<LIMIT> const& p1, CoordPair<LIMIT> const& p2)
 {
     return (p1.x_coord == p2.x_coord && p1.y_coord == p2.y_coord);
 }
 
 template<uint32 LIMIT>
-bool operator!=(const CoordPair<LIMIT>& p1, const CoordPair<LIMIT>& p2)
+bool operator!=(CoordPair<LIMIT> const& p1, CoordPair<LIMIT> const& p2)
 {
     return !(p1 == p2);
 }

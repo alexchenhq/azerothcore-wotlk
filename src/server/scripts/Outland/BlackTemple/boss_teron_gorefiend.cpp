@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -77,7 +77,6 @@ struct boss_teron_gorefiend : public BossAI
 {
     boss_teron_gorefiend(Creature* creature) : BossAI(creature, DATA_TERON_GOREFIEND)
     {
-        _recentlySpoken = false;
         _intro = false;
     }
 
@@ -127,18 +126,9 @@ struct boss_teron_gorefiend : public BossAI
         BossAI::JustEngagedWith(who);
     }
 
-    void KilledUnit(Unit*  victim) override
+    void KilledUnit(Unit* victim) override
     {
-        if (!_recentlySpoken && victim->IsPlayer())
-        {
-            Talk(SAY_SLAY);
-            _recentlySpoken = true;
-
-            ScheduleUniqueTimedEvent(6s, [&]
-            {
-                _recentlySpoken = false;
-            }, 1);
-        }
+        Talk(SAY_SLAY, victim);
     }
 
     void SetData(uint32 type, uint32 id) override
@@ -175,7 +165,6 @@ struct boss_teron_gorefiend : public BossAI
     }
 
     private:
-        bool _recentlySpoken;
         bool _intro;
 };
 

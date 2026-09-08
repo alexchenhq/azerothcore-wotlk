@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -491,7 +491,7 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
         }
 
         // must be after SetMinion (owner guid check)
-        //LoadTemplateImmunities();
+        LoadTemplateImmunities(0);
         //LoadMechanicTemplateImmunity();
         m_loading = false;
     });
@@ -1075,7 +1075,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
         SetMeleeDamageSchool(SpellSchools(cinfo->dmgschool));
     }
 
-    SetModifierValue(UNIT_MOD_ARMOR, BASE_VALUE, float(petlevel * 50));
+    SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(petlevel * 50));
 
     uint32 attackTime = BASE_ATTACK_TIME;
     if (!owner->IsClass(CLASS_HUNTER, CLASS_CONTEXT_PET) && cinfo->BaseAttackTime >= 1000)
@@ -1094,7 +1094,7 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     // xinef: hunter pets should not inherit template resistances
     if (!IsHunterPet())
         for (uint8 i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
-            SetModifierValue(UnitMods(UNIT_MOD_RESISTANCE_START + i), BASE_VALUE, float(cinfo->resistance[i]));
+            SetStatFlatModifier(UnitMods(UNIT_MOD_RESISTANCE_START + i), BASE_VALUE, float(cinfo->resistance[i]));
 
     //health, mana, armor and resistance
     PetLevelInfo const* pInfo = sObjectMgr->GetPetLevelInfo(creature_ID, petlevel);
@@ -1111,15 +1111,15 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
         }
 
         SetCreateHealth(pInfo->health*factorHealth);
-        SetModifierValue(UNIT_MOD_HEALTH, BASE_VALUE, (float)pInfo->health);
+        SetStatFlatModifier(UNIT_MOD_HEALTH, BASE_VALUE, (float)pInfo->health);
         if (petType != HUNTER_PET) //hunter pet use focus
         {
             SetCreateMana(pInfo->mana);
-            SetModifierValue(UNIT_MOD_MANA, BASE_VALUE, (float)pInfo->mana);
+            SetStatFlatModifier(UNIT_MOD_MANA, BASE_VALUE, (float)pInfo->mana);
         }
 
         if (pInfo->armor > 0)
-            SetModifierValue(UNIT_MOD_ARMOR, BASE_VALUE, float(pInfo->armor));
+            SetStatFlatModifier(UNIT_MOD_ARMOR, BASE_VALUE, float(pInfo->armor));
 
         for (uint8 stat = 0; stat < MAX_STATS; ++stat)
             SetCreateStat(Stats(stat), float(pInfo->stats[stat]));
@@ -1138,9 +1138,9 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
         }
 
         SetCreateHealth(std::max<uint32>(1, stats->BaseHealth[cinfo->expansion]*factorHealth));
-        SetModifierValue(UNIT_MOD_HEALTH, BASE_VALUE, GetCreateHealth());
+        SetStatFlatModifier(UNIT_MOD_HEALTH, BASE_VALUE, GetCreateHealth());
         SetCreateMana(stats->BaseMana * factorMana);
-        SetModifierValue(UNIT_MOD_MANA, BASE_VALUE, GetCreateMana());
+        SetStatFlatModifier(UNIT_MOD_MANA, BASE_VALUE, GetCreateMana());
 
         // xinef: added some multipliers so debuffs can affect pets in any way...
         SetCreateStat(STAT_STRENGTH, 22);
@@ -1174,24 +1174,6 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
 
                 switch (GetEntry())
                 {
-                    case NPC_FELGUARD:
-                        {
-                            // xinef: Glyph of Felguard, so ugly im crying... no appropriate spell
-                            if (AuraEffect* aurEff = owner->GetAuraEffectDummy(SPELL_GLYPH_OF_FELGUARD))
-                            {
-                                HandleStatModifier(UNIT_MOD_ATTACK_POWER, TOTAL_PCT, aurEff->GetAmount(), true);
-                            }
-
-                            break;
-                        }
-                    case NPC_VOIDWALKER:
-                        {
-                            if (AuraEffect* aurEff = owner->GetAuraEffectDummy(SPELL_GLYPH_OF_VOIDWALKER))
-                            {
-                                HandleStatModifier(UNIT_MOD_STAT_STAMINA, TOTAL_PCT, aurEff->GetAmount(), true);
-                            }
-                            break;
-                        }
                     case NPC_WATER_ELEMENTAL_PERM:
                         {
                             AddAura(SPELL_PET_AVOIDANCE, this);
@@ -1512,7 +1494,7 @@ void Pet::_LoadSpellCooldowns(PreparedQueryResult result)
         if (!cooldowns.empty() && GetOwner())
         {
             BuildCooldownPacket(data, SPELL_COOLDOWN_FLAG_NONE, cooldowns);
-            GetOwner()->GetSession()->SendPacket(&data);
+            GetOwner()->SendDirectMessage(&data);
         }
     }
 }
@@ -1566,6 +1548,12 @@ void Pet::_LoadSpells(PreparedQueryResult result)
 
 void Pet::_SaveSpells(CharacterDatabaseTransaction trans)
 {
+    // rewrite the whole spell book: pet numbers are recycled, so an incremental save would let a
+    // new pet inherit the rows of whichever pet held the number before it
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_PET_SPELLS);
+    stmt->SetData(0, m_charmInfo->GetPetNumber());
+    trans->Append(stmt);
+
     for (PetSpellMap::iterator itr = m_spells.begin(), next = m_spells.begin(); itr != m_spells.end(); itr = next)
     {
         ++next;
@@ -1574,41 +1562,18 @@ void Pet::_SaveSpells(CharacterDatabaseTransaction trans)
         if (itr->second.type == PETSPELL_FAMILY)
             continue;
 
-        CharacterDatabasePreparedStatement* stmt;
-
-        switch (itr->second.state)
+        if (itr->second.state == PETSPELL_REMOVED)
         {
-            case PETSPELL_REMOVED:
-                stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_PET_SPELL_BY_SPELL);
-                stmt->SetData(0, m_charmInfo->GetPetNumber());
-                stmt->SetData(1, itr->first);
-                trans->Append(stmt);
-
-                m_spells.erase(itr);
-                continue;
-            case PETSPELL_CHANGED:
-                stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_PET_SPELL_BY_SPELL);
-                stmt->SetData(0, m_charmInfo->GetPetNumber());
-                stmt->SetData(1, itr->first);
-                trans->Append(stmt);
-
-                stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_PET_SPELL);
-                stmt->SetData(0, m_charmInfo->GetPetNumber());
-                stmt->SetData(1, itr->first);
-                stmt->SetData(2, itr->second.active);
-                trans->Append(stmt);
-
-                break;
-            case PETSPELL_NEW:
-                stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_PET_SPELL);
-                stmt->SetData(0, m_charmInfo->GetPetNumber());
-                stmt->SetData(1, itr->first);
-                stmt->SetData(2, itr->second.active);
-                trans->Append(stmt);
-                break;
-            case PETSPELL_UNCHANGED:
-                continue;
+            m_spells.erase(itr);
+            continue;
         }
+
+        stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_PET_SPELL);
+        stmt->SetData(0, m_charmInfo->GetPetNumber());
+        stmt->SetData(1, itr->first);
+        stmt->SetData(2, itr->second.active);
+        trans->Append(stmt);
+
         itr->second.state = PETSPELL_UNCHANGED;
     }
 }
@@ -2336,6 +2301,7 @@ bool Pet::Create(ObjectGuid::LowType guidlow, Map* map, uint32 phaseMask, uint32
     // Force regen flag for player pets, just like we do for players themselves
     SetUnitFlag2(UNIT_FLAG2_REGENERATE_POWER);
     SetSheath(SHEATH_STATE_MELEE);
+    GetThreatMgr().Initialize();
 
     return true;
 }

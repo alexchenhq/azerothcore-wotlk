@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -421,7 +421,7 @@ void Graveyard::LoadGraveyardZones()
     LOG_INFO("server.loading", " ");
 }
 
-GraveyardStruct const* Graveyard::GetGraveyard(const std::string& name) const
+GraveyardStruct const* Graveyard::GetGraveyard(std::string const& name) const
 {
     // explicit name case
     std::wstring wname;
@@ -432,7 +432,7 @@ GraveyardStruct const* Graveyard::GetGraveyard(const std::string& name) const
     wstrToLower(wname);
 
     // Alternative first GameTele what contains wnameLow as substring in case no GameTele location found
-    const GraveyardStruct* alt = nullptr;
+    GraveyardStruct const* alt = nullptr;
     for (GraveyardContainer::const_iterator itr = _graveyardStore.begin(); itr != _graveyardStore.end(); ++itr)
     {
         if (itr->second.wnameLow == wname)

@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -113,7 +113,7 @@ bool ArenaSpectator::HandleSpectatorSpectateCommand(ChatHandler* handler, std::s
     if (!player->m_Controlled.empty())
         errors.push_back("Can't be controlling creatures.");
 
-    const Unit::VisibleAuraMap* va = player->GetVisibleAuras();
+    Unit::VisibleAuraMap const* va = player->GetVisibleAuras();
     for (auto itr = va->begin(); itr != va->end(); ++itr)
         if (Aura* aura = itr->second->GetBase())
             if (!itr->second->IsPositive() && !aura->IsPermanent() && aura->GetDuration() < HOUR * IN_MILLISECONDS)
@@ -306,11 +306,11 @@ AC_GAME_API void ArenaSpectator::SendPacketTo(Player const* player, std::string&
 {
     WorldPacket data;
     CreatePacket(data, message);
-    player->GetSession()->SendPacket(&data);
+    player->SendDirectMessage(&data);
 }
 
 template<>
-AC_GAME_API void ArenaSpectator::SendPacketTo(const Map* map, std::string&& message)
+AC_GAME_API void ArenaSpectator::SendPacketTo(Map const* map, std::string&& message)
 {
     if (!map->IsBattleArena())
         return;

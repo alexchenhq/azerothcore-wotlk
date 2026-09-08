@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -95,7 +95,7 @@ class at_hol_hall_of_watchers : public OnlyOnceAreaTriggerScript
 public:
     at_hol_hall_of_watchers() : OnlyOnceAreaTriggerScript("at_hol_hall_of_watchers") {}
 
-    bool _OnTrigger(Player* player, const AreaTrigger* /*at*/) override
+    bool _OnTrigger(Player* player, AreaTrigger const* /*at*/) override
     {
         std::list<Creature*> creatures;
         player->GetCreatureListWithEntryInGrid(creatures, { NPC_TITANIUM_SIEGEBREAKER, NPC_TITANIUM_THUNDERER }, 50.0f);

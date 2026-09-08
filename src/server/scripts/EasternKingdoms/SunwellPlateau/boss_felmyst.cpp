@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -157,7 +157,7 @@ struct boss_felmyst : public BossAI
             me->SetCanFly(true);
             me->SetDisableGravity(true);
             me->SendMovementFlagUpdate();
-            me->GetMotionMaster()->MovePath(me->GetEntry() * 10, true);
+            me->GetMotionMaster()->MoveWaypoint(me->GetEntry() * 10, true);
         }
     }
 
@@ -186,11 +186,10 @@ struct boss_felmyst : public BossAI
 
     void KilledUnit(Unit* victim) override
     {
-        if (victim->IsPlayer() && roll_chance_i(50))
-            Talk(YELL_KILL);
+        Talk(YELL_KILL, victim);
     }
 
-    void SpellHitTarget(Unit* target, const SpellInfo* spell) override
+    void SpellHitTarget(Unit* target, SpellInfo const* spell) override
     {
         if (spell->Id == SPELL_STRAFE_TOP || spell->Id == SPELL_STRAFE_MIDDLE || spell->Id == SPELL_STRAFE_BOTTOM)
             target->CastSpell(target, SPELL_FOG_OF_CORRUPTION, true);
@@ -363,7 +362,7 @@ struct boss_felmyst : public BossAI
 
             me->m_Events.AddEventAtOffset([&] {
                 me->SetImmuneToPC(false);
-                me->GetMotionMaster()->MovePath(me->GetEntry() * 10, true);
+                me->GetMotionMaster()->MoveWaypoint(me->GetEntry() * 10, true);
             }, 8500ms);
         });
     }

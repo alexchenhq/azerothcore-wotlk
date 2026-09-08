@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -32,7 +32,7 @@ namespace std
     template <>
     struct hash<std::pair<uint32_t, uint32_t>>
     {
-        std::size_t operator()(const std::pair<uint32_t, uint32_t>& p) const noexcept
+        std::size_t operator()(std::pair<uint32_t, uint32_t> const& p) const noexcept
         {
             return std::hash<uint64_t>()((static_cast<uint64_t>(p.first) << 32) | p.second);
         }
@@ -76,6 +76,8 @@ namespace MMAP
         std::string MMapsPath() const { return (_dataDir / "mmaps").string(); }
         std::string DataDirPath() const { return _dataDir.string(); }
 
+        std::vector<std::string> const& OffMeshConnections() const { return _offmeshConnections; }
+
     private:
         explicit Config();
 
@@ -86,6 +88,7 @@ namespace MMAP
             std::optional<int> walkableRadius;
             std::optional<int> walkableHeight;
             std::optional<int> walkableClimb;
+            std::optional<float> maxSimplificationError;
         };
 
         struct MapOverride {
@@ -95,6 +98,7 @@ namespace MMAP
             std::optional<int> walkableClimb;
             std::optional<int> vertexPerMapEdge;
             std::optional<int> vertexPerTileEdge;
+            std::optional<float> maxSimplificationError;
 
             // The width/depth of each cell in the XZ-plane grid used for voxelization. [Units: world units]
             // A smaller value increases navmesh resolution but also memory and CPU usage.
@@ -153,6 +157,8 @@ namespace MMAP
         bool _debugOutput;
 
         std::filesystem::path _dataDir;
+
+        std::vector<std::string> _offmeshConnections;
     };
 }
 

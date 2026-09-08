@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -64,13 +64,12 @@ enum Misc
 
 struct boss_mother_shahraz : public BossAI
 {
-    boss_mother_shahraz(Creature* creature) : BossAI(creature, DATA_MOTHER_SHAHRAZ), _canTalk(true) { }
+    boss_mother_shahraz(Creature* creature) : BossAI(creature, DATA_MOTHER_SHAHRAZ) { }
 
     void Reset() override
     {
         _Reset();
         me->m_Events.CancelEventGroup(GROUP_ENRAGE);
-        _canTalk = true;
 
         ScheduleHealthCheckEvent(10, [&] {
             Talk(SAY_EMOTE_FRENZY);
@@ -113,15 +112,7 @@ struct boss_mother_shahraz : public BossAI
 
     void KilledUnit(Unit* /*victim*/) override
     {
-        if (_canTalk)
-        {
-            Talk(SAY_SLAY);
-            _canTalk = false;
-
-            ScheduleUniqueTimedEvent(6s, [&] {
-                _canTalk = true;
-            }, 1);
-        }
+        Talk(SAY_SLAY);
     }
 
     void JustDied(Unit* killer) override
@@ -131,8 +122,6 @@ struct boss_mother_shahraz : public BossAI
         Talk(SAY_DEATH);
     }
 
-    private:
-        bool _canTalk;
 };
 
 class spell_mother_shahraz_random_periodic_aura : public AuraScript

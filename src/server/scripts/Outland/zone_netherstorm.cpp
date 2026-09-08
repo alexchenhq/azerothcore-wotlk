@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -164,6 +164,7 @@ public:
                 }
         }
 
+        using CreatureAI::WaypointReached;
         void WaypointReached(uint32 i) override
         {
             Player* player = GetPlayerForEscort();
@@ -559,7 +560,7 @@ class at_commander_dawnforge : public AreaTriggerScript
 public:
     at_commander_dawnforge() : AreaTriggerScript("at_commander_dawnforge") { }
 
-    bool OnTrigger(Player* player, const AreaTrigger* /*at*/) override
+    bool OnTrigger(Player* player, AreaTrigger const* /*at*/) override
     {
         //if player lost aura or not have at all, we should not try start event.
         if (!player->HasAura(SPELL_SUNFURY_DISGUISE))
@@ -626,6 +627,7 @@ public:
                 player->FailQuest(Q_ALMABTRIEB);
         }
 
+        using CreatureAI::WaypointReached;
         void WaypointReached(uint32 waypointId) override
         {
             Player* player = GetPlayerForEscort();
@@ -709,6 +711,7 @@ public:
             uiTakeTimer = 3000;
         }
 
+        using CreatureAI::WaypointReached;
         void WaypointReached(uint32 waypointId) override
         {
             Player* player = GetPlayerForEscort();
@@ -765,7 +768,7 @@ public:
         }
     };
 
-    bool OnQuestAccept(Player* player, Creature* creature, const Quest* quest) override
+    bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest) override
     {
         if (quest->GetQuestId() == QUEST_MARK_V_IS_ALIVE)
         {

@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -125,7 +125,6 @@ namespace MMAP
     public:
         MapBuilder(Config* config,
                    int mapid,
-                   char const* offMeshFilePath,
                    unsigned int threads);
 
         ~MapBuilder();
@@ -138,7 +137,7 @@ namespace MMAP
         // builds list of maps, then builds all of mmap tiles (based on the skip settings)
         void buildMaps(Optional<uint32> mapID);
 
-        const Config& getConfig() const { return *m_config; }
+        Config const& getConfig() const { return *m_config; }
     private:
         // builds all mmap tiles for the specified map id (ignores skip settings)
         void buildMap(uint32 mapID);
@@ -157,7 +156,7 @@ namespace MMAP
         bool isTransportMap(uint32 mapID) const;
         bool isContinentMap(uint32 mapID) const;
 
-        rcConfig getRecastConfig(const ResolvedMeshConfig &cfg, float bmin[3], float bmax[3]) const;
+        rcConfig getRecastConfig(ResolvedMeshConfig const& cfg, float bmin[3], float bmax[3]) const;
 
         uint32 percentageDone(uint32 totalTiles, uint32 totalTilesDone) const;
         uint32 currentPercentageDone() const;
@@ -167,7 +166,6 @@ namespace MMAP
 
         bool m_debugOutput;
 
-        const char* m_offMeshFilePath;
         unsigned int m_threads;
         bool m_skipContinents;
         bool m_skipJunkMaps;

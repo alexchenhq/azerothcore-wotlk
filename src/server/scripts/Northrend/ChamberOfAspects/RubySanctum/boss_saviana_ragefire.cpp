@@ -1,14 +1,14 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
@@ -46,8 +46,7 @@ enum Events
     EVENT_CONFLAGRATION         = 4,
     EVENT_LAND_GROUND           = 5,
     EVENT_AIR_MOVEMENT          = 6,
-    EVENT_LAND_BACK             = 7,
-    EVENT_KILL_TALK             = 8
+    EVENT_LAND_BACK             = 7
 };
 
 enum Misc
@@ -121,11 +120,7 @@ public:
 
         void KilledUnit(Unit*  /*victim*/) override
         {
-            if (!events.HasTimeUntilEvent(EVENT_KILL_TALK))
-            {
-                Talk(SAY_KILL);
-                events.ScheduleEvent(EVENT_KILL_TALK, 6s);
-            }
+            Talk(SAY_KILL);
         }
 
         void UpdateAI(uint32 diff) override

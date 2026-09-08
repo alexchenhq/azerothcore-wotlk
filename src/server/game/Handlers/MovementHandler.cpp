@@ -1,27 +1,27 @@
 /*
  * This file is part of the AzerothCore Project. See AUTHORS file for Copyright information
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Affero General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at your
- * option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  *
  * You should have received a copy of the GNU General Public License along
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "AreaDefines.h"
 #include "ArenaSpectator.h"
 #include "Battleground.h"
 #include "BattlegroundMgr.h"
 #include "CellImpl.h"
 #include "Chat.h"
 #include "Corpse.h"
-#include "GameGraveyard.h"
 #include "GameTime.h"
 #include "InstanceSaveMgr.h"
 #include "Log.h"
@@ -34,6 +34,7 @@
 #include "ScriptMgr.h"
 #include "SpellAuras.h"
 #include "Transport.h"
+#include "UpdateData.h"
 #include "Vehicle.h"
 #include "WaypointMovementGenerator.h"
 #include "WorldPacket.h"
@@ -105,6 +106,13 @@ void WorldSession::HandleMoveWorldportAck()
     GetPlayer()->UpdatePositionData();
 
     GetPlayer()->SendInitialPacketsBeforeAddToMap();
+
+    if (GetPlayer()->GetPendingFlightChange() <= GetPlayer()->GetMapChangeOrderCounter())
+    {
+        if (!GetPlayer()->HasIncreaseMountedFlightSpeedAura() && !GetPlayer()->HasFlyAura())
+            GetPlayer()->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_CAN_FLY);
+    }
+
     if (!GetPlayer()->GetMap()->AddPlayerToMap(GetPlayer()))
     {
         LOG_ERROR("network.opcode", "WORLD: failed to teleport player {} ({}) to map {} because of unknown reason!",
@@ -121,14 +129,22 @@ void WorldSession::HandleMoveWorldportAck()
     if (Transport* t = _player->GetTransport())
         if (!t->IsInMap(_player))
         {
+            // Client was never told to destroy its own transport
+            // Destroy it now or it keeps a phantom copy of the transport on the new map
+            UpdateData transData;
+            t->BuildOutOfRangeUpdateBlock(&transData);
+            WorldPacket packet;
+            transData.BuildPacket(packet);
+            _player->SendDirectMessage(&packet);
+
             t->RemovePassenger(_player);
             _player->m_transport = nullptr;
             _player->m_movementInfo.transport.Reset();
             _player->m_movementInfo.RemoveMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
         }
 
-    if (!_player->getHostileRefMgr().IsEmpty())
-        _player->getHostileRefMgr().deleteReferences(true); // pussywizard: multithreading crashfix
+    if (_player->GetThreatMgr().IsThreateningAnyone())
+        _player->GetThreatMgr().RemoveMeFromThreatLists(); // pussywizard: multithreading crashfix
 
     CellCoord pair(Acore::ComputeCellCoord(GetPlayer()->GetPositionX(), GetPlayer()->GetPositionY()));
     Cell cell(pair);
@@ -144,7 +160,17 @@ void WorldSession::HandleMoveWorldportAck()
     {
         // but landed on another map, cleanup data
         if (!mEntry->IsBattlegroundOrArena())
+        {
+            // release the unconsumed invite, otherwise the BG never satisfies its empty + uninvited deletion gate
+            if (Battleground* bg = _player->GetBattleground(true))
+                if (_player->IsInvitedForBattlegroundInstance(bg->GetInstanceID()))
+                {
+                    bg->DecreaseInvitedCount(_player->GetBgTeamId());
+                    _player->RemoveBattlegroundQueueId(BattlegroundMgr::BGQueueTypeId(bg->GetBgTypeID(), bg->GetArenaType()));
+                }
+
             _player->SetBattlegroundId(0, BATTLEGROUND_TYPE_NONE, PLAYER_MAX_BATTLEGROUND_QUEUES, false, false, TEAM_NEUTRAL);
+        }
         // everything ok
         else if (Battleground* bg = _player->GetBattleground())
         {
@@ -292,6 +318,8 @@ void WorldSession::HandleMoveTeleportAck(WorldPacket& recvData)
 
     plMover->UpdatePosition(dest, true);
 
+    plMover->SetFallInformation(GameTime::GetGameTime().count(), dest.GetPositionZ());
+
     // xinef: teleport pets if they are not unsummoned
     if (Pet* pet = plMover->GetPet())
     {
@@ -376,6 +404,9 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recvData)
         return;
     }
 
+    if (opcode == CMSG_MOVE_FALL_RESET || opcode == CMSG_MOVE_CHNG_TRANSPORT)
+        return;
+
     /* process position-change */
     WorldPacket data(opcode, recvData.size());
     WriteMovementInfo(&data, &movementInfo);
@@ -405,33 +436,31 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo, Unit* mover
 
     if (mover->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ONTRANSPORT))
     {
-        // if we boarded a transport, add us to it
-        if (Player* plrMover = mover->ToPlayer())
+        // if we boarded a transport, add us to it (generalized for both players and creatures)
+        if (!mover->GetTransport())
         {
-            if (!plrMover->GetTransport())
+            if (Transport* transport = mover->GetMap()->GetTransport(movementInfo.transport.guid))
             {
-                if (Transport* transport = plrMover->GetMap()->GetTransport(movementInfo.transport.guid))
-                {
-                    plrMover->m_transport = transport;
-                    transport->AddPassenger(plrMover);
-                }
+                mover->SetTransport(transport);
+                transport->AddPassenger(mover);
             }
-            else if (plrMover->GetTransport()->GetGUID() != movementInfo.transport.guid)
+        }
+        else if (mover->GetTransport()->GetGUID() != movementInfo.transport.guid)
+        {
+            // Switching transports
+            bool foundNewTransport = false;
+            mover->GetTransport()->RemovePassenger(mover);
+            if (Transport* transport = mover->GetMap()->GetTransport(movementInfo.transport.guid))
             {
-                bool foundNewTransport = false;
-                plrMover->m_transport->RemovePassenger(plrMover);
-                if (Transport* transport = plrMover->GetMap()->GetTransport(movementInfo.transport.guid))
-                {
-                    foundNewTransport = true;
-                    plrMover->m_transport = transport;
-                    transport->AddPassenger(plrMover);
-                }
+                foundNewTransport = true;
+                mover->SetTransport(transport);
+                transport->AddPassenger(mover);
+            }
 
-                if (!foundNewTransport)
-                {
-                    plrMover->m_transport = nullptr;
-                    movementInfo.transport.Reset();
-                }
+            if (!foundNewTransport)
+            {
+                mover->SetTransport(nullptr);
+                movementInfo.transport.Reset();
             }
         }
 
@@ -439,23 +468,20 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo, Unit* mover
         {
             GameObject* go = mover->GetMap()->GetGameObject(movementInfo.transport.guid);
             if (!go || go->GetGoType() != GAMEOBJECT_TYPE_TRANSPORT)
-            {
                 movementInfo.RemoveMovementFlag(MOVEMENTFLAG_ONTRANSPORT);
-            }
         }
     }
-    else if (mover->IsPlayer())
+    else
     {
-        if (Player* plrMover = mover->ToPlayer())
+        // if we were on a transport, leave (handles both players and creatures)
+        if (Transport* transport = mover->GetTransport())
         {
-            if (plrMover->GetTransport()) // if we were on a transport, leave
-            {
-                sScriptMgr->AnticheatSetUnderACKmount(plrMover); // just for safe
+            if (mover->IsPlayer())
+                sScriptMgr->AnticheatSetUnderACKmount(mover->ToPlayer()); // just for safe
 
-                plrMover->m_transport->RemovePassenger(plrMover);
-                plrMover->m_transport = nullptr;
-                movementInfo.transport.Reset();
-            }
+            transport->RemovePassenger(mover);
+            mover->SetTransport(nullptr);
+            movementInfo.transport.Reset();
         }
     }
 
@@ -483,21 +509,20 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo, Unit* mover
             {
                 if (plrMover->IsAlive())
                 {
+                    // The Oculus under map case is handled by areatrigger (5001) and should not kill the player
+                    if (plrMover->GetMapId() == MAP_THE_OCULUS)
+                        return;
+
                     plrMover->SetPlayerFlag(PLAYER_FLAGS_IS_OUT_OF_BOUNDS);
                     plrMover->EnvironmentalDamage(DAMAGE_FALL_TO_VOID, GetPlayer()->GetMaxHealth());
                     // player can be alive if GM
                     if (plrMover->IsAlive())
                         plrMover->KillPlayer();
                 }
-                else if (!plrMover->HasPlayerFlag(PLAYER_FLAGS_IS_OUT_OF_BOUNDS))
-                {
-                    GraveyardStruct const* grave = sGraveyard->GetClosestGraveyard(plrMover, plrMover->GetTeamId());
-                    if (grave)
-                    {
-                        plrMover->TeleportTo(grave->Map, grave->x, grave->y, grave->z, plrMover->GetOrientation());
-                        plrMover->Relocate(grave->x, grave->y, grave->z, plrMover->GetOrientation());
-                    }
-                }
+                // Rescue only released ghosts: teleporting an unreleased body would move the corpse
+                // out of instances (e.g. Eye of Eternity platform destruction, issue #25757).
+                else if (plrMover->HasPlayerFlag(PLAYER_FLAGS_GHOST) && !plrMover->HasPlayerFlag(PLAYER_FLAGS_IS_OUT_OF_BOUNDS))
+                    plrMover->RepopAtGraveyard();
             }
         }
     }
@@ -516,7 +541,10 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo, Player* 
     }
 
     if (!mover->movespline->Finalized())
-        return false;
+    {
+        if (!mover->movespline->isBoarding() || (opcode != CMSG_FORCE_MOVE_UNROOT_ACK && opcode != CMSG_FORCE_MOVE_ROOT_ACK))
+            return false;
+    }
 
     // Xinef: do not allow to move with UNIT_FLAG_DISABLE_MOVE
     if (mover->HasUnitFlag(UNIT_FLAG_DISABLE_MOVE))
@@ -589,7 +617,7 @@ bool WorldSession::ProcessMovementInfo(MovementInfo& movementInfo, Unit* mover, 
     if (!VerifyMovementInfo(movementInfo, plrMover, mover, opcode))
         return false;
 
-    if (mover->HasUnitFlag(UNIT_FLAG_DISABLE_MOVE))
+    if (mover->HasUnitFlag(UNIT_FLAG_DISABLE_MOVE) || (mover->IsCreature() && mover->IsImmobilizedState()))
     {
         movementInfo.pos.Relocate(mover->GetPositionX(), mover->GetPositionY(), mover->GetPositionZ());
 
@@ -672,6 +700,10 @@ void WorldSession::HandleForceSpeedChangeAck(WorldPacket& recvData)
         recvData.rfinish(); // prevent warnings spam
         return;
     }
+
+    // old map - async processing, ignore
+    if (counter <= _player->GetMapChangeOrderCounter())
+        return;
 
     if (!ProcessMovementInfo(movementInfo, mover, _player, recvData))
     {
@@ -811,14 +843,20 @@ void WorldSession::HandleMoveKnockBackAck(WorldPacket& recvData)
     movementInfo.guid = guid;
     ReadMovementInfo(recvData, &movementInfo);
 
-    mover->m_movementInfo = movementInfo;
+    // Relocate the mover to the acknowledged position. Otherwise the server (and the
+    // MSG_MOVE_KNOCK_BACK broadcast below) keeps using the pre-knockback position until
+    // the next regular movement packet arrives, desyncing the unit for nearby clients
+    if (!ProcessMovementInfo(movementInfo, mover, mover->ToPlayer(), recvData))
+    {
+        recvData.rfinish(); // prevent warnings spam
+        return;
+    }
 
     if (mover->IsPlayer() && static_cast<Player*>(mover)->IsFreeFlying())
         mover->SetCanFly(true);
 
     WorldPacket data(MSG_MOVE_KNOCK_BACK, 66);
-    data << guid.WriteAsPacked();
-    _player->m_mover->BuildMovementPacket(&data);
+    WriteMovementInfo(&data, &movementInfo);
     _player->SetCanTeleport(true);
     // knockback specific info
     data << movementInfo.jump.sinAngle;
@@ -958,7 +996,8 @@ void WorldSession::ComputeNewClockDelta()
 
 void WorldSession::HandleMoveRootAck(WorldPacket& recvData)
 {
-    LOG_DEBUG("network", "WORLD: {}", GetOpcodeNameForLogging((Opcodes)recvData.GetOpcode()));
+    Opcodes opcode = (Opcodes)recvData.GetOpcode();
+    LOG_DEBUG("network", "WORLD: {}", GetOpcodeNameForLogging(opcode));
 
     ObjectGuid guid;
     uint32 counter;
@@ -973,9 +1012,15 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recvData)
     if (mover->GetGUID() != guid)
         return;
 
-    if (recvData.GetOpcode() == CMSG_FORCE_MOVE_UNROOT_ACK) // unroot case
+    if (opcode == CMSG_FORCE_MOVE_UNROOT_ACK) // unroot case
     {
         if (!mover->m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT))
+            return;
+
+        // Legit unroots clear the state first, so a still immobilized mover was never sent one.
+        // This ack bypasses VerifyMovementInfo()'s root check, so accepting it clears
+        // MOVEMENTFLAG_ROOT permanently. Creatures only: ResurrectPlayer() unroots packet-only.
+        if (mover->IsCreature() && mover->IsImmobilizedState())
             return;
     }
     else // root case
@@ -984,10 +1029,17 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recvData)
             return;
     }
 
+    // old map - async processing, ignore
+    if (counter <= _player->GetMapChangeOrderCounter())
+        return;
+
     if (!ProcessMovementInfo(movementInfo, mover, _player, recvData))
         return;
 
-    WorldPacket data(recvData.GetOpcode() == CMSG_FORCE_MOVE_UNROOT_ACK ? MSG_MOVE_UNROOT : MSG_MOVE_ROOT);
+    if (_player->IsExpectingChangeTransport())
+        return;
+
+    WorldPacket data(opcode == CMSG_FORCE_MOVE_UNROOT_ACK ? MSG_MOVE_UNROOT : MSG_MOVE_ROOT);
     WriteMovementInfo(&data, &movementInfo);
     mover->SendMessageToSet(&data, _player);
 }
