@@ -2036,6 +2036,8 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
         case FORM_STEALTH:                                  // 0x1E
         case FORM_MOONKIN:                                  // 0x1F
         case FORM_SPIRITOFREDEMPTION:                       // 0x20
+
+        case 0x18:                                          // 0x18 Archon Form
             break;
         default:
             LOG_ERROR("spells.aura.effect", "Auras: Unknown Shapeshift Type: {}", GetMiscValue());
