@@ -1417,6 +1417,11 @@ void AuraEffect::HandleShapeshiftBoosts(Unit* target, bool apply) const
         case FORM_CREATURECAT:
         case FORM_CREATUREBEAR:
             break;
+
+        case FORM_ARCHON:
+            spellId = 95002;
+            break;
+
         default:
             break;
     }
@@ -2037,7 +2042,7 @@ void AuraEffect::HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mo
         case FORM_MOONKIN:                                  // 0x1F
         case FORM_SPIRITOFREDEMPTION:                       // 0x20
 
-        case 0x18:                                          // 0x18 Archon Form
+        case FORM_ARCHON:                                   // 0x18
             break;
         default:
             LOG_ERROR("spells.aura.effect", "Auras: Unknown Shapeshift Type: {}", GetMiscValue());
